@@ -1,5 +1,9 @@
 # 计算社会科学领域的合作网络分析
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
+![Data: OpenAlex](https://img.shields.io/badge/Data-OpenAlex-brightgreen.svg)
+
 > 用 [OpenAlex](https://openalex.org) 的公开学术数据,把「计算社会科学(Computational Social Science, CSS)」这个领域**本身**当成研究对象:它的核心作者是谁、分成哪几个学派、彼此如何连接。
 
 这是一个面向初学者的入门数据项目,用 Python 完成从「抓数据 → 建网络 → 找社群 → 可视化」的完整流程,代码均有中文注释。

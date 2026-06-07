@@ -43,6 +43,11 @@ STOPWORDS = {
     "can", "but", "der", "about", "during", "following", "not", "all", "more",
     "has", "have", "had", "will", "may", "also", "than", "when", "where", "which",
     "who", "it", "no", "do", "does",
+    "large", "human", "future", "world", "challenges", "limitations",
+    "perspective", "making", "building", "application", "applications",
+    "increase", "state", "free", "open", "sense", "track", "introduction",
+    "computer", "subjects", "design", "promise", "peril", "stand", "ins",
+    "rang", "ipseome", "yahtzee",
 }
 
 
