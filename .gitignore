@@ -1,0 +1,23 @@
+# ---- Python ----
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- 项目数据(体积可能很大,由抓取脚本自动生成,不入库)----
+# 别人 clone 后跑一遍脚本即可重建;如需放样例数据,再单独加白名单
+data/
+*.csv
+*.jsonl
+*.json
+!requirements.txt
+
+# 图片成果(网络图等)默认保留,方便在 README 里展示 —— 所以不忽略 figures/
+
+# ---- 机密/本地配置 ----
+.env
+
+# ---- 操作系统杂项 ----
+Thumbs.db
+.DS_Store
