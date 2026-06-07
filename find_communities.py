@@ -1,20 +1,22 @@
 """
 find_communities.py —— 阶段四:在合作网络里找"学派"(社群),并产出一组真正有用的图。
 
-相比单张"毛球图",这里产出 4 张直接回答问题的图(都存到 figures/):
-  1. papers_per_year.png      —— 逐年论文数:这个领域怎么发展起来的。
+产出 4 张图(都存到 figures/):
+  1. papers_per_year.png      —— 逐年论文数(标注未满整年的当前年)。
   2. top_authors.png          —— 核心作者排行(合作最广 / 发文最多)。
-  3. coauthor_network.png     —— 网络图,但给每个学派标上"主题词",颜色才有意义。
+  3. coauthor_network.png     —— 前 12 大学派排成一圈,互不重叠,各标主题词。
   4. communities_overview.png —— 各学派规模 + 代表主题词一览。
 
 社群发现用内置于 networkx 的 Louvain 算法,只在最大连通块(巨核)上运行。
 """
 
 import json
+import math
 import os
 import re
 import sys
 from collections import Counter
+from datetime import datetime
 
 import matplotlib
 matplotlib.use("Agg")            # 不弹窗,直接存文件
@@ -65,17 +67,25 @@ def top_words(titles, k=8):
 
 
 def fig_papers_per_year(works, path):
-    """图1:逐年论文数。"""
-    years = [w.get("publication_year") for w in works if w.get("publication_year")]
-    c = Counter(years)
+    """图1:逐年论文数;把"未满整年的当前年"用灰色标出,避免误读。"""
+    cur_year = datetime.now().year
+    c = Counter(w.get("publication_year") for w in works if w.get("publication_year"))
     xs = sorted(c)
     ys = [c[y] for y in xs]
+    colors = ["#4C72B0" if y < cur_year else "#BBBBBB" for y in xs]
+
     plt.figure(figsize=(11, 5.5))
-    plt.bar(xs, ys, color="#4C72B0")
+    plt.bar(xs, ys, color=colors)
     plt.title("Computational Social Science: number of papers per year", fontsize=14)
     plt.xlabel("Year")
     plt.ylabel("Papers")
     plt.grid(axis="y", alpha=0.3)
+    if cur_year in c:
+        plt.annotate(f"{cur_year}: partial year\n(data fetched mid-{cur_year})",
+                     xy=(cur_year, c[cur_year]),
+                     xytext=(cur_year - 16, max(ys) * 0.72),
+                     arrowprops=dict(arrowstyle="->", color="gray"),
+                     fontsize=9, color="gray")
     plt.tight_layout()
     plt.savefig(path, dpi=180)
     plt.close()
@@ -107,38 +117,53 @@ def fig_top_authors(G, path, top_n=15):
     plt.close(fig)
 
 
-def fig_network(H, communities, node2comm, comm_titles, path):
-    """图3:网络图,每个较大学派在质心处标主题词。"""
-    deg = dict(H.degree())
-    pos = nx.spring_layout(H, seed=SEED, k=0.15, iterations=50)
+def fig_network(H, communities, comm_titles, path, top_k=12):
+    """图3:前 top_k 大学派各成一团,均匀摆在一个圆环上,互不重叠,外侧标主题词。"""
+    top_comms = communities[:top_k]
+    shown = set().union(*top_comms)
+    HH = H.subgraph(shown)
+    deg = dict(HH.degree())
     cmap = plt.cm.tab20
 
-    node_colors = [cmap(node2comm[a] % 20) for a in H.nodes()]
-    node_sizes = [10 + 4 * deg.get(a, 0) for a in H.nodes()]
+    # 每个学派一个圆环位置;团内部用小型 spring 布局,再缩放、平移到该位置
+    pos = {}
+    node2i = {}
+    centers = []
+    for i, comm in enumerate(top_comms):
+        ang = 2 * math.pi * i / top_k - math.pi / 2     # 从正上方开始排
+        cx, cy = math.cos(ang), math.sin(ang)
+        centers.append((ang, cx, cy, i, comm))
+        sub = HH.subgraph(comm)
+        if sub.number_of_nodes() <= 1:
+            sub_pos = {n: (0.0, 0.0) for n in comm}
+        else:
+            sub_pos = nx.spring_layout(sub, seed=SEED, k=0.6, iterations=50)
+        for node, (x, y) in sub_pos.items():
+            pos[node] = (cx + 0.12 * x, cy + 0.12 * y)
+            node2i[node] = i
 
-    plt.figure(figsize=(16, 16))
-    nx.draw_networkx_edges(H, pos, alpha=0.06, width=0.4)
-    nx.draw_networkx_nodes(H, pos, node_color=node_colors, node_size=node_sizes,
+    node_colors = [cmap(node2i[n] % 20) for n in HH.nodes()]
+    node_sizes = [12 + 4 * deg.get(n, 0) for n in HH.nodes()]
+
+    plt.figure(figsize=(15, 15))
+    nx.draw_networkx_edges(HH, pos, alpha=0.05, width=0.4)
+    nx.draw_networkx_nodes(HH, pos, node_color=node_colors, node_size=node_sizes,
                            linewidths=0.2, edgecolors="white")
 
-    # 给人数 >= 20 的学派,在其质心标上"主题词"(前 2 个),白底框便于阅读
-    for idx, comm in enumerate(communities):
-        if len(comm) < 20:
-            continue
-        xs = [pos[a][0] for a in comm]
-        ys = [pos[a][1] for a in comm]
-        cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
-        label = ", ".join(top_words(comm_titles[idx], k=2))
-        if not label:
-            continue
-        plt.text(cx, cy, label, fontsize=12, fontweight="bold",
-                 ha="center", va="center",
-                 bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.85))
+    for ang, cx, cy, i, comm in centers:
+        label = ", ".join(top_words(comm_titles[i], k=2)) or f"#{i}"
+        lx, ly = 1.34 * math.cos(ang), 1.34 * math.sin(ang)
+        ha = "left" if math.cos(ang) > 0.2 else ("right" if math.cos(ang) < -0.2 else "center")
+        plt.text(lx, ly, f"{label}\n(n={len(comm)})", fontsize=11, fontweight="bold",
+                 ha=ha, va="center",
+                 bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.9))
 
-    plt.title("Computational Social Science — Co-authorship Network (giant component)\n"
-              f"{H.number_of_nodes()} authors; color = Louvain community, labels = community topic words",
-              fontsize=15)
+    plt.title("Computational Social Science — the 12 largest schools (Louvain communities)\n"
+              "each blob is one school on a ring, labeled with its top title words",
+              fontsize=14)
     plt.axis("off")
+    plt.xlim(-1.75, 1.75)
+    plt.ylim(-1.75, 1.75)
     plt.tight_layout()
     plt.savefig(path, dpi=200, bbox_inches="tight")
     plt.close()
@@ -151,9 +176,7 @@ def fig_communities_overview(communities, comm_titles, path):
     labels = [", ".join(top_words(comm_titles[idx], k=3)) or f"community {idx}"
               for idx, _ in big]
     sizes = [len(comm) for _, comm in big]
-
-    cmap = plt.cm.tab20
-    colors = [cmap(idx % 20) for idx, _ in big]
+    colors = [plt.cm.tab20(idx % 20) for idx, _ in big]
 
     plt.figure(figsize=(12, max(6, 0.5 * len(big))))
     plt.barh(range(len(big)), sizes, color=colors)
@@ -173,7 +196,6 @@ def main():
     works = load_works(WORKS_PATH)
     print(f"网络 {G.number_of_nodes()} 节点 / {G.number_of_edges()} 边;论文 {len(works)} 篇")
 
-    # 巨核 + Louvain
     giant_nodes = max(nx.connected_components(G), key=len)
     H = G.subgraph(giant_nodes).copy()
     communities = sorted(nx_comm.louvain_communities(H, weight="weight", seed=SEED),
@@ -182,7 +204,6 @@ def main():
 
     node2comm = {aid: idx for idx, comm in enumerate(communities) for aid in comm}
 
-    # 每篇论文按"多数作者所属学派"归类,聚合标题
     comm_titles = {idx: [] for idx in range(len(communities))}
     for w in works:
         votes = Counter()
@@ -193,7 +214,6 @@ def main():
         if votes:
             comm_titles[votes.most_common(1)[0][0]].append(w.get("display_name") or "")
 
-    # 控制台速览(人数 >= 8 的学派)
     deg = dict(H.degree())
     for idx, comm in enumerate(communities):
         if len(comm) < 8:
@@ -202,13 +222,12 @@ def main():
         core_names = ", ".join(H.nodes[a].get("name", a) for a in core)
         print(f"学派#{idx}({len(comm)}人) 主题[{', '.join(top_words(comm_titles[idx], 5))}] 核心:{core_names}")
 
-    # 四张图
     print("\n正在生成 4 张图...")
     fig_papers_per_year(works, os.path.join(FIG_DIR, "papers_per_year.png"))
     fig_top_authors(G, os.path.join(FIG_DIR, "top_authors.png"))
-    fig_network(H, communities, node2comm, comm_titles, os.path.join(FIG_DIR, "coauthor_network.png"))
+    fig_network(H, communities, comm_titles, os.path.join(FIG_DIR, "coauthor_network.png"))
     fig_communities_overview(communities, comm_titles, os.path.join(FIG_DIR, "communities_overview.png"))
-    print(f"完成,图已存到 {FIG_DIR}/(papers_per_year / top_authors / coauthor_network / communities_overview).png")
+    print(f"完成,4 张图已存到 {FIG_DIR}/")
 
 
 if __name__ == "__main__":

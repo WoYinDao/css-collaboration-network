@@ -45,7 +45,7 @@
 
 ![各学派规模](figures/communities_overview.png)
 
-**合著网络全景**(每个彩色簇 = 一个学派,框内为该学派的主题词)
+**12 大学派全景**(各学派排成一圈、互不重叠;框内是主题词和人数,中间淡线是学派之间的合作)
 
 ![合著网络](figures/coauthor_network.png)
 
@@ -110,4 +110,4 @@ python find_communities.py     # 找社群 + 出 4 张图 -> figures/*.png
 
 学术元数据来自 **OpenAlex**(https://openalex.org),其数据以 CC0 释出。感谢 OpenAlex 提供免费、开放的接口。
 
-本项目为学习用途。
+本项目为学习用途,代码以 **MIT License** 开源(见 [LICENSE](LICENSE))。
