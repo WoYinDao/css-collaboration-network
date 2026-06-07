@@ -4,9 +4,9 @@
 
 这是一个面向初学者的入门数据项目,用 Python 完成从「抓数据 → 建网络 → 找社群 → 可视化」的完整流程,代码均有中文注释。
 
-![计算社会科学合作网络(巨核)](figures/coauthor_network.png)
+![计算社会科学逐年论文数](figures/papers_per_year.png)
 
-*巨核(742 位作者)的合著网络,颜色代表 Louvain 算法识别出的不同社群(学派),标注的是合作最广的核心作者。*
+*这个领域在 2005 年前几乎空白,2015 年后爆发式增长——直观回答了"它是怎么发展起来的"。更多图见下方「四张图读懂这个领域」。*
 
 ---
 
@@ -34,6 +34,20 @@
 - **计算文本分析 / text-as-data** —— Gary King、Grimmer、Wallach、Niekler(主题:text、topic、language）
 
 > 「主题高频词」是从社群成员论文标题里自动提取的,作为研究方向的**代理指标**,并非严格的关键词标注。
+
+## 四张图读懂这个领域
+
+**核心作者**(左:合作者最多;右:发文最多)
+
+![核心作者](figures/top_authors.png)
+
+**各学派规模与代表主题**(在最大连通块上用 Louvain 划分,标签为标题高频词)
+
+![各学派规模](figures/communities_overview.png)
+
+**合著网络全景**(每个彩色簇 = 一个学派,框内为该学派的主题词)
+
+![合著网络](figures/coauthor_network.png)
 
 ---
 
@@ -68,7 +82,7 @@ pip install -r requirements.txt
 python check_env.py            # 确认环境 OK
 python fetch_openalex.py       # 抓数据 -> data/works.jsonl(约 2500 篇,十几秒)
 python build_network.py        # 建网络 + 打印指标 -> data/coauthor_network.graphml
-python find_communities.py     # 找社群 + 出图 -> figures/coauthor_network.png
+python find_communities.py     # 找社群 + 出 4 张图 -> figures/*.png
 ```
 
 > macOS / Linux 下,激活命令改为 `source .venv/bin/activate`,其余相同。
