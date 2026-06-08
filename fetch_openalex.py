@@ -23,8 +23,9 @@ BASE_URL = "https://api.openalex.org/works"
 # 领域界定:标题或摘要包含确切短语 "computational social science"
 SEARCH_PHRASE = "computational social science"
 FILTER = f'title_and_abstract.search:"{SEARCH_PHRASE}"'
-# 只取这几个顶层字段(authorships 自带作者+机构的嵌套信息)
-SELECT = "id,display_name,publication_year,cited_by_count,authorships"
+# 取建网络 + 主题建模要用的字段
+# (authorships 含作者+机构;abstract_inverted_index 是摘要的倒排索引)
+SELECT = "id,display_name,publication_year,cited_by_count,authorships,abstract_inverted_index"
 PER_PAGE = 200            # 每页条数(接口可能上限更低,没关系,游标会自动多翻几页)
 SLEEP_BETWEEN = 0.2       # 每次请求之间歇 0.2 秒,礼貌访问
 MAX_RETRIES = 5           # 单页最多重试次数

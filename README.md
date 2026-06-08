@@ -53,6 +53,16 @@
 
 ![合著网络](figures/coauthor_network.png)
 
+## 阶段五:研究主题与前沿迁移
+
+对 2400+ 篇论文的**摘要**(由 OpenAlex 倒排索引还原,已剔除非英文)做 TF-IDF + NMF 主题模型,挖出 10 个研究主题,并看它们逐年占比的变化:
+
+![各主题规模](figures/topics_size.png)
+
+![前沿迁移](figures/topics_over_time.png)
+
+**能看出的趋势**:社交媒体/政治、网络动力学、agent 模拟是长期主干;而 **LLM 大模型、生成式 AI** 是 2022 年后迅速崛起的新前沿;早期偏宏观的 "big data / 数字人文" 式讨论占比则逐渐下降。
+
 ---
 
 ## 项目结构
@@ -63,6 +73,7 @@ opencode-css/
 ├── fetch_openalex.py     # 阶段二:从 OpenAlex 抓取论文元数据
 ├── build_network.py      # 阶段三:构建合著网络 + 基础指标
 ├── find_communities.py   # 阶段四:Louvain 社群发现 + 可视化
+├── topic_model.py        # 阶段五:摘要主题模型 + 前沿迁移
 ├── requirements.txt      # 依赖清单
 ├── figures/              # 输出的图片(纳入版本库)
 └── data/                 # 抓取的数据与中间网络文件(.gitignore 忽略,可由脚本重建)
@@ -87,6 +98,7 @@ python check_env.py            # 确认环境 OK
 python fetch_openalex.py       # 抓数据 -> data/works.jsonl(约 2500 篇,十几秒)
 python build_network.py        # 建网络 + 打印指标 -> data/coauthor_network.graphml
 python find_communities.py     # 找社群 + 出 4 张图 -> figures/*.png
+python topic_model.py          # 摘要主题模型 + 前沿迁移图 -> figures/topics_*.png
 ```
 
 > macOS / Linux 下,激活命令改为 `source .venv/bin/activate`,其余相同。
@@ -105,7 +117,7 @@ python find_communities.py     # 找社群 + 出 4 张图 -> figures/*.png
 
 ## 后续可做(进阶)
 
-- **文本主题演化**:对论文摘要做主题模型 / embedding,观察该领域研究前沿如何随年份迁移。
+- **更强的主题模型**:用 embedding(如 BERTopic / Qwen)替代 NMF,主题更细更准(可在 GPU / DGX 上跑)。
 - **统计推断**:切出某一年的网络,用 ERGM(R 的 `ergm` / `RSiena`)检验"同机构是否更易合作"等假设。
 
 ---
